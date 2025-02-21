@@ -1,10 +1,10 @@
 import {
   Entity,
-  PrimaryColumn,
   Column,
   ManyToOne,
   JoinColumn,
   Index,
+  PrimaryGeneratedColumn,
 } from 'typeorm';
 import { LocationOrganization } from './location-organization.entity';
 import { AssetType } from './asset-type.entity';
@@ -12,7 +12,10 @@ import { AssetStatus } from '../../shared/enums/asset-status.enum';
 
 @Entity('assets')
 export class Asset {
-  @PrimaryColumn()
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
   @Index('IDX_ASSET_SERIAL', { unique: true })
   serial: string;
 
@@ -22,7 +25,7 @@ export class Asset {
   @Column({
     type: 'enum',
     enum: AssetStatus,
-    default: AssetStatus.ACTIVE,
+    default: AssetStatus.ACTIVED,
   })
   status: AssetStatus;
 

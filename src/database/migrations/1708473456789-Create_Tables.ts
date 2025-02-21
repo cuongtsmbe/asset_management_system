@@ -1,10 +1,10 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class CreateDatabase1740031229 implements MigrationInterface {
+export class CreateTables1708473456789 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
       CREATE TABLE organizations (
-        id VARCHAR(10) PRIMARY KEY,
+        id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -24,7 +24,7 @@ export class CreateDatabase1740031229 implements MigrationInterface {
       CREATE TABLE location_organizations (
         id INT AUTO_INCREMENT PRIMARY KEY,
         location_id INT NOT NULL,
-        organization_id VARCHAR(10) NOT NULL,
+        organization_id INT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (location_id) REFERENCES locations(id),
@@ -36,17 +36,17 @@ export class CreateDatabase1740031229 implements MigrationInterface {
     await queryRunner.query(`
       CREATE TABLE asset_types (
         id VARCHAR(20) PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
+        type VARCHAR(255) NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
 
     await queryRunner.query(`
       CREATE TABLE assets (
-        id VARCHAR(255) PRIMARY KEY,
-        type_id VARCHAR(20) NOT NULL,
+        id INT AUTO_INCREMENT PRIMARY KEY,
         serial VARCHAR(255) NOT NULL UNIQUE,
-        status VARCHAR(50) DEFAULT 'active',
+        type_id VARCHAR(20) NOT NULL,
+        status VARCHAR(50) DEFAULT 'actived',
         description TEXT,
         location_organization_id INT,
         created_at BIGINT NOT NULL,
@@ -71,8 +71,8 @@ export class CreateDatabase1740031229 implements MigrationInterface {
 
     await queryRunner.query(`
       INSERT INTO organizations (id, name) VALUES
-      ('PNS', 'PNS Organization'),
-      ('PLJ', 'PLJ Organization');
+      ('1', 'PNS'),
+      ('2', 'PLJ');
     `);
 
     await queryRunner.query(`
@@ -86,24 +86,23 @@ export class CreateDatabase1740031229 implements MigrationInterface {
 
     await queryRunner.query(`
       INSERT INTO location_organizations (location_id, organization_id) VALUES
-      (1, 'PNS'),
-      (2, 'PNS'),
-      (3, 'PNS'),
-      (4, 'PLJ'),
-      (5, 'PLJ'),
-      (1, 'PLJ');
+      (1, 1),
+      (2, 1),
+      (3, 1),
+      (4, 2),
+      (5, 2)
     `);
 
     await queryRunner.query(`
-      INSERT INTO asset_types (id, name) VALUES
-      ('CIA1-10', 'CIA1-10 Asset Type'),
-      ('CIA1-11', 'CIA1-11 Asset Type'),
-      ('CIA1-12', 'CIA1-12 Asset Type'),
-      ('CIA1-13', 'CIA1-13 Asset Type'),
-      ('CIA1-14', 'CIA1-14 Asset Type'),
-      ('CIA1-15', 'CIA1-15 Asset Type'),
-      ('CIA1-16', 'CIA1-16 Asset Type'),
-      ('CIA1-17', 'CIA1-17 Asset Type');
+      INSERT INTO asset_types (id, type) VALUES
+      ('1', 'CIA1-10'),
+      ('2', 'CIA1-11'),
+      ('3', 'CIA1-12'),
+      ('4', 'CIA1-13'),
+      ('5', 'CIA1-14'),
+      ('6', 'CIA1-15'),
+      ('7', 'CIA1-16'),
+      ('8', 'CIA1-17');
     `);
   }
 
