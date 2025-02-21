@@ -144,8 +144,9 @@ export class AssetService {
       syncHistory.error_details =
         error instanceof Error ? error.message : 'Unknown error';
 
-      await queryRunner.manager.save(SyncHistory, syncHistory);
       await queryRunner.rollbackTransaction();
+      await queryRunner.manager.save(SyncHistory, syncHistory);
+
       this.logger.error('Error synchronizing assets:', error);
       throw error;
     } finally {
