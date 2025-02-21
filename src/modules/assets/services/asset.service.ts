@@ -139,7 +139,6 @@ export class AssetService {
     return asset;
   }
 
-  // Thêm API để xem lịch sử đồng bộ
   async getSyncHistory(): Promise<SyncHistory[]> {
     return this.syncHistoryRepository.find({
       order: { sync_time: 'DESC' },
