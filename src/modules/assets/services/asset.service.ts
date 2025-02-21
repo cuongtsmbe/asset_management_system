@@ -7,6 +7,7 @@ import axios from 'axios';
 import { SyncHistory } from '../../../database/entities/sync_history.entity';
 import { IAsset } from 'src/shared/interfaces/asset.interface';
 import { Status, SyncStatus } from 'src/shared/enums/asset.enum';
+import { AssetType } from '../../../database/entities/asset_type.entity';
 
 @Injectable()
 export class AssetService {
@@ -20,6 +21,8 @@ export class AssetService {
     @InjectRepository(SyncHistory)
     private syncHistoryRepository: Repository<SyncHistory>,
     private dataSource: DataSource,
+    @InjectRepository(AssetType)
+    private assetTypeRepository: Repository<AssetType>,
   ) {}
 
   async syncAssets() {
@@ -33,7 +36,7 @@ export class AssetService {
     syncHistory.success_count = 0;
     syncHistory.error_count = 0;
     try {
-      const [response, activeLocations] = await Promise.all([
+      const [response, activeLocations, assetTypes] = await Promise.all([
         axios.get('https://669ce22d15704bb0e304842d.mockapi.io/assets'),
         this.locationRepository
           .createQueryBuilder('location')
@@ -41,6 +44,7 @@ export class AssetService {
           .innerJoin('location.locationOrganizations', 'lo')
           .where('lo.status = :status', { status: Status.ACTIVED })
           .getMany(),
+        this.assetTypeRepository.find(),
       ]);
 
       const externalAssets = response.data as IAsset[];
@@ -48,17 +52,24 @@ export class AssetService {
 
       const activeLocationIds: number[] = activeLocations.map((loc) => loc.id);
 
+      const typeMap = new Map(assetTypes.map((type) => [type.type, type.id]));
+
       for (const externalAsset of externalAssets) {
         try {
           if (
             activeLocationIds.includes(externalAsset.location_id) &&
             externalAsset.created_at < Date.now()
           ) {
+            const typeId = typeMap.get(externalAsset.type) as number;
+            if (!typeId) {
+              throw new Error(`Invalid asset type: ${externalAsset.type}`);
+            }
+
             await queryRunner.manager.upsert(
               Asset,
               {
                 serial: externalAsset.serial,
-                type_id: externalAsset.type,
+                type_id: typeId,
                 status: externalAsset.status,
                 description: externalAsset.description,
                 created_at: externalAsset.created_at,
@@ -112,12 +123,17 @@ export class AssetService {
 
   async findOne(serial: string): Promise<Asset> {
     const asset = await this.assetRepository.findOne({
-      where: { serial: serial },
-      relations: ['location'],
+      where: { serial },
+      relations: {
+        locationOrganization: {
+          location: true,
+        },
+        assetType: true,
+      },
     });
 
     if (!asset) {
-      throw new NotFoundException(`Asset with ID ${serial} not found`);
+      throw new NotFoundException(`Asset with serial ${serial} not found`);
     }
 
     return asset;

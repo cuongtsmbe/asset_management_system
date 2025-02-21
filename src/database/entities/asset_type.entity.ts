@@ -12,6 +12,6 @@ export class AssetType {
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at: Date;
 
-  @OneToMany(() => Asset, (asset) => asset.assetType)
+  @OneToMany(() => Asset, (asset) => asset.assetType, { nullable: true })
   assets: Asset[];
 }

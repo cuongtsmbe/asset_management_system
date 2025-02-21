@@ -36,7 +36,7 @@ export class CreateTables1708473456789 implements MigrationInterface {
 
     await queryRunner.query(`
       CREATE TABLE asset_types (
-        id VARCHAR(20) PRIMARY KEY,
+        id INT AUTO_INCREMENT PRIMARY KEY,
         type VARCHAR(255) NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
@@ -46,7 +46,7 @@ export class CreateTables1708473456789 implements MigrationInterface {
       CREATE TABLE assets (
         id INT AUTO_INCREMENT PRIMARY KEY,
         serial VARCHAR(255) NOT NULL UNIQUE,
-        type_id VARCHAR(20) NOT NULL,
+        type_id INT NOT NULL,
         status VARCHAR(50) DEFAULT 'actived',
         description TEXT,
         location_organization_id INT,

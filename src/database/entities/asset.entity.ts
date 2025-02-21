@@ -7,7 +7,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { LocationOrganization } from './location_organization.entity';
-import { AssetType } from './asset-type.entity';
+import { AssetType } from './asset_type.entity';
 import { Status } from '../../shared/enums/asset.enum';
 
 @Entity('assets')
@@ -20,7 +20,7 @@ export class Asset {
   serial: string;
 
   @Column()
-  type_id: string;
+  type_id: number;
 
   @Column({
     type: 'enum',
