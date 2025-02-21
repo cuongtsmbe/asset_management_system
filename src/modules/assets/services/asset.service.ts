@@ -67,8 +67,9 @@ export class AssetService {
       syncHistory.status = 'COMPLETED';
       await queryRunner.manager.save(SyncHistory, syncHistory);
       await queryRunner.commitTransaction();
-      
-      this.logger.log(`Assets synchronized successfully. Success: ${syncHistory.success_count}, Errors: ${syncHistory.error_count}`);
+      this.logger.log(
+        `Assets synchronized successfully. Success: ${syncHistory.success_count}, Errors: ${syncHistory.error_count}`,
+      );
     } catch (error) {
       syncHistory.status = 'FAILED';
       syncHistory.error_details = error.message;

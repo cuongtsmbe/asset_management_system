@@ -13,8 +13,8 @@ import { AssetModule } from './modules/assets/asset.module';
     }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: async (configService: ConfigService) => {
-        const config = await configService.get<Record<string, any>>('database');
+      useFactory: (configService: ConfigService) => {
+        const config = configService.get<Record<string, any>>('database');
         if (!config) {
           throw new Error('Database config not found');
         }
