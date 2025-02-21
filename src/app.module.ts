@@ -4,7 +4,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
 import databaseConfig from './config/database.config';
 import { AssetModule } from './modules/assets/asset.module';
-
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -24,5 +23,6 @@ import { AssetModule } from './modules/assets/asset.module';
     ScheduleModule.forRoot(),
     AssetModule,
   ],
+  providers: [],
 })
 export class AppModule {}

@@ -13,5 +13,6 @@ import { AssetType } from 'src/database/entities/asset_type.entity';
   ],
   controllers: [AssetController],
   providers: [AssetService, AssetSyncTask],
+  exports: [AssetService],
 })
 export class AssetModule {}
