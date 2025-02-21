@@ -9,7 +9,7 @@ import {
 import { Location } from './location.entity';
 import { Organization } from './organization.entity';
 import { Asset } from './asset.entity';
-
+import { Status } from '../../shared/enums/asset.enum';
 @Entity('location_organizations')
 export class LocationOrganization {
   @PrimaryGeneratedColumn()
@@ -21,8 +21,12 @@ export class LocationOrganization {
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   updated_at: Date;
 
-  @Column({ default: 'active' })
-  status: string;
+  @Column({
+    type: 'enum',
+    enum: Status,
+    default: Status.ACTIVED,
+  })
+  status: Status;
 
   @OneToMany(() => Asset, (asset) => asset.locationOrganization)
   assets: Asset[];

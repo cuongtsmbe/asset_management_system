@@ -4,7 +4,9 @@ import { Repository, DataSource } from 'typeorm';
 import { Asset } from '../../../database/entities/asset.entity';
 import { Location } from '../../../database/entities/location.entity';
 import axios from 'axios';
-import { SyncHistory } from '../../../database/entities/sync-history.entity';
+import { SyncHistory } from '../../../database/entities/sync_history.entity';
+import { IAsset } from 'src/shared/interfaces/asset.interface';
+import { Status, SyncStatus } from 'src/shared/enums/asset.enum';
 
 @Injectable()
 export class AssetService {
@@ -26,36 +28,48 @@ export class AssetService {
     await queryRunner.startTransaction();
 
     const syncHistory = new SyncHistory();
-    syncHistory.status = 'IN_PROGRESS';
+    syncHistory.status = SyncStatus.IN_PROGRESS;
     syncHistory.total_records = 0;
     syncHistory.success_count = 0;
     syncHistory.error_count = 0;
     try {
-      const response = await axios.get('https://669ce22d15704bb0e304842d.mockapi.io/assets');
-      const externalAssets = response.data;
+      const [response, activeLocations] = await Promise.all([
+        axios.get('https://669ce22d15704bb0e304842d.mockapi.io/assets'),
+        this.locationRepository
+          .createQueryBuilder('location')
+          .select('location.id')
+          .innerJoin('location.locationOrganizations', 'lo')
+          .where('lo.status = :status', { status: Status.ACTIVED })
+          .getMany(),
+      ]);
+      console.log(response.data);
+      const externalAssets = response.data as IAsset[];
       syncHistory.total_records = externalAssets.length;
 
-      const activeLocations = await this.locationRepository.find();
-      const activeLocationIds = activeLocations.map((loc) => loc.id);
+      const activeLocationIds: number[] = activeLocations.map((loc) => loc.id);
 
       for (const externalAsset of externalAssets) {
         try {
-          if (activeLocationIds.includes(externalAsset.location_id)) {
-            const asset = await this.assetRepository.findOne({
-              where: { serial: externalAsset.serial },
-            });
-
-            if (asset) {
-              await queryRunner.manager.update(Asset, asset.serial, {
-                ...externalAsset,
+          if (
+            activeLocationIds.includes(externalAsset.location_id) &&
+            externalAsset.created_at < Date.now()
+          ) {
+            await queryRunner.manager.upsert(
+              Asset,
+              {
+                serial: externalAsset.serial,
+                type_id: externalAsset.type,
+                status: externalAsset.status,
+                description: externalAsset.description,
+                created_at: externalAsset.created_at,
+                updated_at: externalAsset.updated_at,
                 last_synced_at: new Date(),
-              });
-            } else {
-              await queryRunner.manager.save(Asset, {
-                ...externalAsset,
-                last_synced_at: new Date(),
-              });
-            }
+              },
+              {
+                conflictPaths: ['serial'],
+                skipUpdateIfNoValuesChanged: true,
+              },
+            );
             syncHistory.success_count++;
           }
         } catch (err) {
@@ -64,17 +78,18 @@ export class AssetService {
         }
       }
 
-      syncHistory.status = 'COMPLETED';
+      syncHistory.status = SyncStatus.COMPLETED;
       await queryRunner.manager.save(SyncHistory, syncHistory);
       await queryRunner.commitTransaction();
       this.logger.log(
         `Assets synchronized successfully. Success: ${syncHistory.success_count}, Errors: ${syncHistory.error_count}`,
       );
-    } catch (error) {
-      syncHistory.status = 'FAILED';
-      syncHistory.error_details = error.message;
+    } catch (error: unknown) {
+      syncHistory.status = SyncStatus.FAILED;
+      syncHistory.error_details =
+        error instanceof Error ? error.message : 'Unknown error';
       await queryRunner.manager.save(SyncHistory, syncHistory);
-      
+
       await queryRunner.rollbackTransaction();
       this.logger.error('Error synchronizing assets:', error);
       throw error;

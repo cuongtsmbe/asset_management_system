@@ -25,6 +25,7 @@ export class CreateTables1708473456789 implements MigrationInterface {
         id INT AUTO_INCREMENT PRIMARY KEY,
         location_id INT NOT NULL,
         organization_id INT NOT NULL,
+        status VARCHAR(50) DEFAULT 'actived',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (location_id) REFERENCES locations(id),

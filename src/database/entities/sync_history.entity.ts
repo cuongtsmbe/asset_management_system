@@ -1,3 +1,4 @@
+import { SyncStatus } from '../../shared/enums/asset.enum';
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
 @Entity('sync_history')
@@ -8,8 +9,8 @@ export class SyncHistory {
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   sync_time: Date;
 
-  @Column()
-  status: string;
+  @Column({ type: 'enum', enum: SyncStatus, default: SyncStatus.IN_PROGRESS })
+  status: SyncStatus;
 
   @Column({ default: 0 })
   total_records: number;

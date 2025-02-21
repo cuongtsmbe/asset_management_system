@@ -6,9 +6,9 @@ import {
   Index,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { LocationOrganization } from './location-organization.entity';
+import { LocationOrganization } from './location_organization.entity';
 import { AssetType } from './asset-type.entity';
-import { AssetStatus } from '../../shared/enums/asset-status.enum';
+import { Status } from '../../shared/enums/asset.enum';
 
 @Entity('assets')
 export class Asset {
@@ -24,10 +24,10 @@ export class Asset {
 
   @Column({
     type: 'enum',
-    enum: AssetStatus,
-    default: AssetStatus.ACTIVED,
+    enum: Status,
+    default: Status.ACTIVED,
   })
-  status: AssetStatus;
+  status: Status;
 
   @Column({ type: 'text', nullable: true })
   description: string;

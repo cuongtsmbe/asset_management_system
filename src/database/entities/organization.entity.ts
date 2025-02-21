@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
-import { LocationOrganization } from './location-organization.entity';
+import { LocationOrganization } from './location_organization.entity';
 
 @Entity('organizations')
 export class Organization {
