@@ -13,7 +13,7 @@ export interface IAsset {
   location_id: number;
 }
 
-export interface IAssetResponse {
+export interface IAssetSyncResponse {
   status: boolean;
   message: string;
   data: SyncHistory;
@@ -29,4 +29,10 @@ export interface IAssetDetail {
   status: boolean;
   message?: string;
   data: Asset;
+}
+
+export interface IAssetResponse {
+  status: boolean;
+  message?: string;
+  data: Asset[];
 }

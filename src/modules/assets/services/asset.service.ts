@@ -10,6 +10,7 @@ import {
   IAssetDetail,
   IAssetResponse,
   IAssetSyncHistorys,
+  IAssetSyncResponse,
 } from 'src/shared/interfaces/asset.interface';
 import { Status, SyncStatus } from 'src/shared/enums/asset.enum';
 import { AssetType } from '../../../database/entities/asset_type.entity';
@@ -30,7 +31,7 @@ export class AssetService {
     private assetTypeRepository: Repository<AssetType>,
   ) {}
 
-  async syncAssets(): Promise<IAssetResponse> {
+  async syncAssets(): Promise<IAssetSyncResponse> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -168,16 +169,24 @@ export class AssetService {
     };
   }
 
-  async findAll(locationId?: number): Promise<Asset[]> {
-    const queryBuilder = this.assetRepository
-      .createQueryBuilder('asset')
-      .leftJoinAndSelect('asset.location', 'location');
+  async findAll(): Promise<IAssetResponse> {
+    const assets = await this.assetRepository.find({
+      relations: [
+        'locationOrganization',
+        'locationOrganization.location',
+        'locationOrganization.organization',
+        'assetType',
+      ],
+      order: {
+        created_at: 'DESC',
+      },
+    });
 
-    if (locationId) {
-      queryBuilder.where('asset.location_id = :locationId', { locationId });
-    }
-
-    return queryBuilder.getMany();
+    return {
+      status: true,
+      message: 'Assets retrieved successfully',
+      data: assets,
+    };
   }
 
   async findOne(serial: string): Promise<IAssetDetail> {

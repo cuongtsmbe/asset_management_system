@@ -1,10 +1,10 @@
-import { Controller, Get, Post, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Param } from '@nestjs/common';
 import { AssetService } from '../services/asset.service';
-import { Asset } from '../../../database/entities/asset.entity';
 import {
   IAssetDetail,
   IAssetResponse,
   IAssetSyncHistorys,
+  IAssetSyncResponse,
 } from 'src/shared/interfaces/asset.interface';
 
 @Controller('assets')
@@ -12,8 +12,8 @@ export class AssetController {
   constructor(private readonly assetService: AssetService) {}
 
   @Get()
-  async findAll(@Query('location_id') locationId?: number): Promise<Asset[]> {
-    return this.assetService.findAll(locationId);
+  async findAll(): Promise<IAssetResponse> {
+    return this.assetService.findAll();
   }
 
   @Get(':serial')
@@ -22,7 +22,7 @@ export class AssetController {
   }
 
   @Post('sync')
-  async syncAssets(): Promise<IAssetResponse> {
+  async syncAssets(): Promise<IAssetSyncResponse> {
     return this.assetService.syncAssets();
   }
 
