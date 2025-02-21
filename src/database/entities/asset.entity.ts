@@ -1,27 +1,32 @@
 import {
   Entity,
-  PrimaryGeneratedColumn,
+  PrimaryColumn,
   Column,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
-import { Location } from './location.entity';
+import { LocationOrganization } from './location-organization.entity';
+import { AssetType } from './asset-type.entity';
+import { AssetStatus } from '../../shared/enums/asset-status.enum';
 
 @Entity('assets')
 export class Asset {
-  @PrimaryGeneratedColumn()
-  id: string;
-
-  @Column()
-  type: string;
-
-  @Column()
+  @PrimaryColumn()
+  @Index('IDX_ASSET_SERIAL', { unique: true })
   serial: string;
 
   @Column()
-  status: string;
+  type_id: string;
 
-  @Column()
+  @Column({
+    type: 'enum',
+    enum: AssetStatus,
+    default: AssetStatus.ACTIVE,
+  })
+  status: AssetStatus;
+
+  @Column({ type: 'text', nullable: true })
   description: string;
 
   @Column({ type: 'bigint' })
@@ -30,10 +35,27 @@ export class Asset {
   @Column({ type: 'bigint' })
   updated_at: number;
 
-  @Column()
-  location_id: number;
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  last_synced_at: Date;
 
-  @ManyToOne(() => Location, (location) => location.assets)
-  @JoinColumn({ name: 'location_id' })
-  location: Location;
+  @ManyToOne(
+    (): typeof LocationOrganization => LocationOrganization,
+    (lo: LocationOrganization) => lo.assets,
+    {
+      nullable: false,
+    }
+  )
+  @JoinColumn({ name: 'location_organization_id' })
+  locationOrganization: LocationOrganization;
+
+  @ManyToOne(
+    (): typeof AssetType => AssetType,
+    (type: AssetType) => type.assets,
+    {
+      nullable: false,
+      eager: true,
+    }
+  )
+  @JoinColumn({ name: 'type_id' })
+  assetType: AssetType;
 }

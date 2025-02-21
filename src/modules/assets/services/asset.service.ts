@@ -30,28 +30,23 @@ export class AssetService {
     syncHistory.total_records = 0;
     syncHistory.success_count = 0;
     syncHistory.error_count = 0;
-
     try {
       const response = await axios.get('https://669ce22d15704bb0e304842d.mockapi.io/assets');
       const externalAssets = response.data;
-      
       syncHistory.total_records = externalAssets.length;
 
-      // Get active locations from database
-      const activeLocations = await this.locationRepository.find({
-        where: { status: 'active' },
-      });
+      const activeLocations = await this.locationRepository.find();
       const activeLocationIds = activeLocations.map((loc) => loc.id);
 
       for (const externalAsset of externalAssets) {
         try {
           if (activeLocationIds.includes(externalAsset.location_id)) {
             const asset = await this.assetRepository.findOne({
-              where: { id: externalAsset.id },
+              where: { serial: externalAsset.serial },
             });
 
             if (asset) {
-              await queryRunner.manager.update(Asset, asset.id, {
+              await queryRunner.manager.update(Asset, asset.serial, {
                 ...externalAsset,
                 last_synced_at: new Date(),
               });
@@ -99,14 +94,14 @@ export class AssetService {
     return queryBuilder.getMany();
   }
 
-  async findOne(id: string): Promise<Asset> {
+  async findOne(serial: string): Promise<Asset> {
     const asset = await this.assetRepository.findOne({
-      where: { id },
+      where: { serial: serial },
       relations: ['location'],
     });
 
     if (!asset) {
-      throw new NotFoundException(`Asset with ID ${id} not found`);
+      throw new NotFoundException(`Asset with ID ${serial} not found`);
     }
 
     return asset;

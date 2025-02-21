@@ -5,7 +5,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "3001:3000"
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules
@@ -17,7 +17,7 @@ services:
       - DATABASE_USERNAME=root
       - DATABASE_PASSWORD=root
       - DATABASE_NAME=asset_management
-
+    command: ["npm", "run", "migration:run"]
   mysql:
     image: mysql:8.0
     ports:
@@ -27,6 +27,16 @@ services:
       - MYSQL_DATABASE=asset_management
     volumes:
       - mysql_data:/var/lib/mysql
-
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    ports:
+      - "8080:80"
+    environment:
+      - PMA_HOST=mysql
+      - PMA_PORT=3306
+      - MYSQL_ROOT_PASSWORD=root
+    depends_on:
+      - mysql
 volumes:
   mysql_data: 

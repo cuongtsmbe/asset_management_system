@@ -11,15 +11,15 @@ export class SyncHistory {
   @Column()
   status: string;
 
-  @Column()
+  @Column({ default: 0 })
   total_records: number;
 
-  @Column()
+  @Column({ default: 0 })
   success_count: number;
 
-  @Column()
+  @Column({ default: 0 })
   error_count: number;
 
   @Column({ type: 'text', nullable: true })
   error_details: string;
-} 
+}

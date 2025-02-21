@@ -4,7 +4,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
 import databaseConfig from './config/database.config';
 import { AssetModule } from './modules/assets/asset.module';
-import { LocationModule } from './modules/locations/location.module';
 
 @Module({
   imports: [
@@ -14,11 +13,16 @@ import { LocationModule } from './modules/locations/location.module';
     }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => configService.get('database'),
+      useFactory: async (configService: ConfigService) => {
+        const config = await configService.get<Record<string, any>>('database');
+        if (!config) {
+          throw new Error('Database config not found');
+        }
+        return config;
+      },
     }),
     ScheduleModule.forRoot(),
     AssetModule,
-    LocationModule,
   ],
 })
 export class AppModule {}
