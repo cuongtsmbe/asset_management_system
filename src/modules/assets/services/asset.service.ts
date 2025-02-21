@@ -32,9 +32,7 @@ export class AssetService {
 
     const syncHistory = new SyncHistory();
     syncHistory.status = SyncStatus.IN_PROGRESS;
-    syncHistory.total_records = 0;
-    syncHistory.success_count = 0;
-    syncHistory.error_count = 0;
+
     try {
       this.logger.log('Synchronizing assets...');
       const [response, activeLocations, assetTypes] = await Promise.all([
@@ -54,64 +52,98 @@ export class AssetService {
       const externalAssets = response.data as IAsset[];
       syncHistory.total_records = externalAssets.length;
 
-      const activeLocationIds: number[] = activeLocations.map(
-        (loc) => loc.location_id as number,
+      const activeLocationIds = new Set(
+        activeLocations.map((loc) => loc.location_id as number),
       );
 
       const typeMap = new Map(assetTypes.map((type) => [type.type, type.id]));
-      const locationOrganizationMap = new Map(
+      const locationOrgMap = new Map(
         activeLocations.map((loc) => [
           loc.location_id,
           loc.location_organization_id,
         ]),
       );
 
-      for (const externalAsset of externalAssets) {
-        if (
-          activeLocationIds.includes(externalAsset.location_id) &&
-          externalAsset.created_at < Date.now()
-        ) {
-          const typeId = typeMap.get(externalAsset.type) as number;
-          if (!typeId) {
-            throw new Error(`Invalid asset type: ${externalAsset.type}`);
-          }
+      // Filter valid assets first
+      const validAssets = externalAssets
+        .filter(
+          (asset) =>
+            activeLocationIds.has(asset.location_id) &&
+            asset.created_at < Date.now() &&
+            typeMap.has(asset.type),
+        )
+        .map((asset) => ({
+          serial: asset.serial,
+          type_id: typeMap.get(asset.type) as number,
+          status: asset.status,
+          description: asset.description,
+          locationOrganization: {
+            id: locationOrgMap.get(asset.location_id) as number,
+          },
+          created_at: asset.created_at,
+          updated_at: asset.updated_at,
+          last_synced_at: new Date(),
+        }));
 
-          await queryRunner.manager.upsert(
-            Asset,
-            {
-              serial: externalAsset.serial,
-              type_id: typeId,
-              status: externalAsset.status,
-              description: externalAsset.description,
-              locationOrganization: {
-                id: locationOrganizationMap.get(
-                  externalAsset.location_id,
-                ) as number,
-              },
-              created_at: externalAsset.created_at,
-              updated_at: externalAsset.updated_at,
-              last_synced_at: new Date(),
-            },
-            {
-              conflictPaths: ['serial'],
-              skipUpdateIfNoValuesChanged: true,
-            },
-          );
-          syncHistory.success_count++;
-        }
+      // Bulk upsert
+      if (validAssets.length > 0) {
+        const parameters: any[] | undefined = [];
+        const values = validAssets
+          .map((asset) => {
+            parameters.push(
+              asset.serial,
+              asset.type_id,
+              asset.status,
+              asset.description,
+              asset.created_at,
+              asset.updated_at,
+              asset.locationOrganization.id,
+            );
+            return '(?, ?, ?, ?, ?, ?, NOW(), ?)';
+          })
+          .join(',');
+
+        await queryRunner.manager.query(
+          `
+          INSERT INTO assets (
+            serial, 
+            type_id, 
+            status, 
+            description, 
+            created_at, 
+            updated_at, 
+            last_synced_at,
+            location_organization_id
+          ) 
+          VALUES ${values}
+          ON DUPLICATE KEY UPDATE
+            type_id = VALUES(type_id),
+            status = VALUES(status),
+            description = VALUES(description),
+            updated_at = VALUES(updated_at),
+            last_synced_at = VALUES(last_synced_at),
+            location_organization_id = VALUES(location_organization_id)
+        `,
+          parameters,
+        );
       }
 
+      syncHistory.success_count = validAssets.length;
+      syncHistory.error_count = externalAssets.length - validAssets.length;
       syncHistory.status = SyncStatus.COMPLETED;
+
       await queryRunner.manager.save(SyncHistory, syncHistory);
       await queryRunner.commitTransaction();
+
       this.logger.log(
-        `Assets synchronized successfully. Success: ${syncHistory.success_count}, Errors: ${syncHistory.error_count}`,
+        `Assets synchronized successfully. Success: ${syncHistory.success_count}, Skipped: ${syncHistory.error_count}`,
       );
     } catch (error: unknown) {
       syncHistory.status = SyncStatus.FAILED;
-      syncHistory.error_count++;
+      syncHistory.error_count = syncHistory.total_records;
       syncHistory.error_details =
         error instanceof Error ? error.message : 'Unknown error';
+
       await queryRunner.manager.save(SyncHistory, syncHistory);
       await queryRunner.rollbackTransaction();
       this.logger.error('Error synchronizing assets:', error);
@@ -119,12 +151,13 @@ export class AssetService {
     } finally {
       await queryRunner.release();
     }
+
     return {
       status: syncHistory.status === SyncStatus.COMPLETED,
       message:
         syncHistory.status === SyncStatus.COMPLETED
           ? 'Assets synchronized successfully'
-          : 'Assets synchronized failed',
+          : 'Assets synchronization failed',
       syncHistory,
     };
   }
