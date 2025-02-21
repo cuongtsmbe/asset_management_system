@@ -1,7 +1,10 @@
 import { Controller, Get, Post, Param, Query } from '@nestjs/common';
 import { AssetService } from '../services/asset.service';
 import { Asset } from '../../../database/entities/asset.entity';
-import { IAssetResponse } from 'src/shared/interfaces/asset.interface';
+import {
+  IAssetResponse,
+  IAssetSyncHistorys,
+} from 'src/shared/interfaces/asset.interface';
 
 @Controller('assets')
 export class AssetController {
@@ -23,7 +26,7 @@ export class AssetController {
   }
 
   @Get('sync/history')
-  async getSyncHistory() {
+  async getSyncHistory(): Promise<IAssetSyncHistorys> {
     return this.assetService.getSyncHistory();
   }
 }

@@ -15,5 +15,11 @@ export interface IAsset {
 export interface IAssetResponse {
   status: boolean;
   message: string;
-  syncHistory: SyncHistory;
+  data: SyncHistory;
+}
+
+export interface IAssetSyncHistorys {
+  status: boolean;
+  message?: string;
+  data: SyncHistory[];
 }

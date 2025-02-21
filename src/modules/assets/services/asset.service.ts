@@ -5,7 +5,11 @@ import { Asset } from '../../../database/entities/asset.entity';
 import { Location } from '../../../database/entities/location.entity';
 import axios from 'axios';
 import { SyncHistory } from '../../../database/entities/sync_history.entity';
-import { IAsset, IAssetResponse } from 'src/shared/interfaces/asset.interface';
+import {
+  IAsset,
+  IAssetResponse,
+  IAssetSyncHistorys,
+} from 'src/shared/interfaces/asset.interface';
 import { Status, SyncStatus } from 'src/shared/enums/asset.enum';
 import { AssetType } from '../../../database/entities/asset_type.entity';
 
@@ -159,7 +163,7 @@ export class AssetService {
         syncHistory.status === SyncStatus.COMPLETED
           ? 'Assets synchronized successfully'
           : 'Assets synchronization failed',
-      syncHistory,
+      data: syncHistory,
     };
   }
 
@@ -193,9 +197,15 @@ export class AssetService {
     return asset;
   }
 
-  async getSyncHistory(): Promise<SyncHistory[]> {
-    return this.syncHistoryRepository.find({
+  async getSyncHistory(): Promise<IAssetSyncHistorys> {
+    const syncHistory = await this.syncHistoryRepository.find({
       order: { sync_time: 'DESC' },
     });
+
+    return {
+      status: true,
+      message: 'Sync history retrieved successfully',
+      data: syncHistory,
+    };
   }
 }
