@@ -42,7 +42,7 @@ export class AssetService {
           .where('lo.status = :status', { status: Status.ACTIVED })
           .getMany(),
       ]);
-      console.log(response.data);
+
       const externalAssets = response.data as IAsset[];
       syncHistory.total_records = externalAssets.length;
 
