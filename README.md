@@ -12,7 +12,7 @@
 2. Run the application using Docker:
 
 ```bash
-docker-compose up -d --build
+sudo docker compose up -d --build
 ```
 3. stop run docker-compose down
 ```bash
@@ -66,7 +66,12 @@ The system automatically synchronizes assets with the external system every day 
 npm install
 ```
 
-2. Start the development server:
+2. Run migrations
+```bash
+npm run migration:run
+```
+
+3. Start the development server:
 ```bash
 npm run start:dev
 ```
