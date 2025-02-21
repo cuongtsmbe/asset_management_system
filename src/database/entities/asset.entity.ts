@@ -46,7 +46,7 @@ export class Asset {
     (lo: LocationOrganization) => lo.assets,
     {
       nullable: false,
-    }
+    },
   )
   @JoinColumn({ name: 'location_organization_id' })
   locationOrganization: LocationOrganization;
@@ -57,7 +57,7 @@ export class Asset {
     {
       nullable: false,
       eager: true,
-    }
+    },
   )
   @JoinColumn({ name: 'type_id' })
   assetType: AssetType;
