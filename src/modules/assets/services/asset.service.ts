@@ -11,9 +11,12 @@ import {
   IAssetResponse,
   IAssetSyncHistorys,
   IAssetSyncResponse,
+  AssetParameterValue,
+  IAssetParameter,
 } from 'src/shared/interfaces/asset.interface';
 import { Status, SyncStatus } from 'src/shared/enums/asset.enum';
 import { AssetType } from '../../../database/entities/asset_type.entity';
+import { ASSET_CHUNK_SIZE } from 'src/shared/constants/asset';
 
 @Injectable()
 export class AssetService {
@@ -58,15 +61,17 @@ export class AssetService {
       const externalAssets = response.data as IAsset[];
       syncHistory.total_records = externalAssets.length;
 
-      const activeLocationIds = new Set(
+      const activeLocationIds: Set<number> = new Set(
         activeLocations.map((loc) => loc.location_id as number),
       );
 
-      const typeMap = new Map(assetTypes.map((type) => [type.type, type.id]));
-      const locationOrgMap = new Map(
+      const typeMap: Map<string, number> = new Map(
+        assetTypes.map((type) => [type.type, type.id]),
+      );
+      const locationOrgMap: Map<number, number> = new Map(
         activeLocations.map((loc) => [
-          loc.location_id,
-          loc.location_organization_id,
+          loc.location_id as number,
+          loc.location_organization_id as number,
         ]),
       );
 
@@ -91,20 +96,34 @@ export class AssetService {
           last_synced_at: new Date(),
         }));
 
-      // Bulk upsert
-      if (validAssets.length > 0) {
-        const parameters: any[] | undefined = [];
-        const values = validAssets
+      const chunkSize = ASSET_CHUNK_SIZE;
+      let processedCount = 0;
+
+      for (let i = 0; i < validAssets.length; i += chunkSize) {
+        const chunk = validAssets.slice(i, i + chunkSize);
+        const parameters: AssetParameterValue[] = [];
+        const values = chunk
           .map((asset) => {
+            const params: IAssetParameter = {
+              serial: asset.serial,
+              type_id: asset.type_id,
+              status: asset.status,
+              description: asset.description,
+              created_at: asset.created_at,
+              updated_at: asset.updated_at,
+              location_organization_id: asset.locationOrganization.id,
+            };
+
             parameters.push(
-              asset.serial,
-              asset.type_id,
-              asset.status,
-              asset.description,
-              asset.created_at,
-              asset.updated_at,
-              asset.locationOrganization.id,
+              params.serial,
+              params.type_id,
+              params.status,
+              params.description,
+              params.created_at,
+              params.updated_at,
+              params.location_organization_id,
             );
+
             return '(?, ?, ?, ?, ?, ?, NOW(), ?)';
           })
           .join(',');
@@ -132,10 +151,15 @@ export class AssetService {
         `,
           parameters,
         );
+
+        processedCount += chunk.length;
+        this.logger.log(
+          `Processed ${processedCount}/${validAssets.length} assets...`,
+        );
       }
 
       syncHistory.success_count = validAssets.length;
-      syncHistory.error_count = externalAssets.length - validAssets.length;
+      syncHistory.error_count = 0;
       syncHistory.status = SyncStatus.COMPLETED;
 
       await queryRunner.manager.save(SyncHistory, syncHistory);

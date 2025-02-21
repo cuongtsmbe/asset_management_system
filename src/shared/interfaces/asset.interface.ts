@@ -36,3 +36,15 @@ export interface IAssetResponse {
   message?: string;
   data: Asset[];
 }
+
+export interface IAssetParameter {
+  serial: string;
+  type_id: number;
+  status: Status;
+  description: string | null;
+  created_at: number;
+  updated_at: number;
+  location_organization_id: number;
+}
+
+export type AssetParameterValue = IAssetParameter[keyof IAssetParameter];

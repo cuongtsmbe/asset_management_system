@@ -86,12 +86,12 @@ export class CreateTables1708473456789 implements MigrationInterface {
     `);
 
     await queryRunner.query(`
-      INSERT INTO location_organizations (location_id, organization_id) VALUES
-      (1, 1),
-      (2, 1),
-      (3, 1),
-      (4, 2),
-      (5, 2)
+      INSERT INTO location_organizations (location_id, organization_id, status) VALUES
+      (1, 1, 'actived'),
+      (2, 1, 'unactive'),
+      (3, 1, 'actived'),
+      (4, 2, 'actived'),
+      (5, 2, 'actived')
     `);
 
     await queryRunner.query(`
