@@ -2,6 +2,7 @@ import { Controller, Get, Post, Param, Query } from '@nestjs/common';
 import { AssetService } from '../services/asset.service';
 import { Asset } from '../../../database/entities/asset.entity';
 import {
+  IAssetDetail,
   IAssetResponse,
   IAssetSyncHistorys,
 } from 'src/shared/interfaces/asset.interface';
@@ -15,9 +16,9 @@ export class AssetController {
     return this.assetService.findAll(locationId);
   }
 
-  @Get(':id')
-  async findOne(@Param('id') id: string): Promise<Asset> {
-    return this.assetService.findOne(id);
+  @Get(':serial')
+  async findOne(@Param('serial') serial: string): Promise<IAssetDetail> {
+    return this.assetService.findOne(serial);
   }
 
   @Post('sync')

@@ -7,6 +7,7 @@ import axios from 'axios';
 import { SyncHistory } from '../../../database/entities/sync_history.entity';
 import {
   IAsset,
+  IAssetDetail,
   IAssetResponse,
   IAssetSyncHistorys,
 } from 'src/shared/interfaces/asset.interface';
@@ -179,7 +180,7 @@ export class AssetService {
     return queryBuilder.getMany();
   }
 
-  async findOne(serial: string): Promise<Asset> {
+  async findOne(serial: string): Promise<IAssetDetail> {
     const asset = await this.assetRepository.findOne({
       where: { serial },
       relations: {
@@ -194,7 +195,11 @@ export class AssetService {
       throw new NotFoundException(`Asset with serial ${serial} not found`);
     }
 
-    return asset;
+    return {
+      status: true,
+      message: 'Asset retrieved successfully',
+      data: asset,
+    };
   }
 
   async getSyncHistory(): Promise<IAssetSyncHistorys> {
