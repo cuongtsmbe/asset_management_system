@@ -5,7 +5,7 @@ import { Asset } from '../../../database/entities/asset.entity';
 import { Location } from '../../../database/entities/location.entity';
 import axios from 'axios';
 import { SyncHistory } from '../../../database/entities/sync_history.entity';
-import { IAsset } from 'src/shared/interfaces/asset.interface';
+import { IAsset, IAssetResponse } from 'src/shared/interfaces/asset.interface';
 import { Status, SyncStatus } from 'src/shared/enums/asset.enum';
 import { AssetType } from '../../../database/entities/asset_type.entity';
 
@@ -25,7 +25,7 @@ export class AssetService {
     private assetTypeRepository: Repository<AssetType>,
   ) {}
 
-  async syncAssets() {
+  async syncAssets(): Promise<IAssetResponse> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -36,56 +36,68 @@ export class AssetService {
     syncHistory.success_count = 0;
     syncHistory.error_count = 0;
     try {
+      this.logger.log('Synchronizing assets...');
       const [response, activeLocations, assetTypes] = await Promise.all([
         axios.get('https://669ce22d15704bb0e304842d.mockapi.io/assets'),
         this.locationRepository
           .createQueryBuilder('location')
-          .select('location.id')
+          .select([
+            'location.id as location_id',
+            'lo.id as location_organization_id',
+          ])
           .innerJoin('location.locationOrganizations', 'lo')
           .where('lo.status = :status', { status: Status.ACTIVED })
-          .getMany(),
+          .getRawMany(),
         this.assetTypeRepository.find(),
       ]);
 
       const externalAssets = response.data as IAsset[];
       syncHistory.total_records = externalAssets.length;
 
-      const activeLocationIds: number[] = activeLocations.map((loc) => loc.id);
+      const activeLocationIds: number[] = activeLocations.map(
+        (loc) => loc.location_id as number,
+      );
 
       const typeMap = new Map(assetTypes.map((type) => [type.type, type.id]));
+      const locationOrganizationMap = new Map(
+        activeLocations.map((loc) => [
+          loc.location_id,
+          loc.location_organization_id,
+        ]),
+      );
 
       for (const externalAsset of externalAssets) {
-        try {
-          if (
-            activeLocationIds.includes(externalAsset.location_id) &&
-            externalAsset.created_at < Date.now()
-          ) {
-            const typeId = typeMap.get(externalAsset.type) as number;
-            if (!typeId) {
-              throw new Error(`Invalid asset type: ${externalAsset.type}`);
-            }
-
-            await queryRunner.manager.upsert(
-              Asset,
-              {
-                serial: externalAsset.serial,
-                type_id: typeId,
-                status: externalAsset.status,
-                description: externalAsset.description,
-                created_at: externalAsset.created_at,
-                updated_at: externalAsset.updated_at,
-                last_synced_at: new Date(),
-              },
-              {
-                conflictPaths: ['serial'],
-                skipUpdateIfNoValuesChanged: true,
-              },
-            );
-            syncHistory.success_count++;
+        if (
+          activeLocationIds.includes(externalAsset.location_id) &&
+          externalAsset.created_at < Date.now()
+        ) {
+          const typeId = typeMap.get(externalAsset.type) as number;
+          if (!typeId) {
+            throw new Error(`Invalid asset type: ${externalAsset.type}`);
           }
-        } catch (err) {
-          syncHistory.error_count++;
-          syncHistory.error_details = `${syncHistory.error_details || ''}\nError with asset ${externalAsset.id}: ${err.message}`;
+
+          await queryRunner.manager.upsert(
+            Asset,
+            {
+              serial: externalAsset.serial,
+              type_id: typeId,
+              status: externalAsset.status,
+              description: externalAsset.description,
+              locationOrganization: {
+                id: locationOrganizationMap.get(
+                  externalAsset.location_id,
+                ) as number,
+              },
+              created_at: externalAsset.created_at,
+              updated_at: externalAsset.updated_at,
+              last_synced_at: new Date(),
+            },
+            {
+              conflictPaths: ['serial'],
+              skipUpdateIfNoValuesChanged: true,
+            },
+          );
+          syncHistory.success_count++;
         }
       }
 
@@ -97,16 +109,24 @@ export class AssetService {
       );
     } catch (error: unknown) {
       syncHistory.status = SyncStatus.FAILED;
+      syncHistory.error_count++;
       syncHistory.error_details =
         error instanceof Error ? error.message : 'Unknown error';
       await queryRunner.manager.save(SyncHistory, syncHistory);
-
       await queryRunner.rollbackTransaction();
       this.logger.error('Error synchronizing assets:', error);
       throw error;
     } finally {
       await queryRunner.release();
     }
+    return {
+      status: syncHistory.status === SyncStatus.COMPLETED,
+      message:
+        syncHistory.status === SyncStatus.COMPLETED
+          ? 'Assets synchronized successfully'
+          : 'Assets synchronized failed',
+      syncHistory,
+    };
   }
 
   async findAll(locationId?: number): Promise<Asset[]> {

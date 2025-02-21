@@ -1,3 +1,4 @@
+import { SyncHistory } from 'src/database/entities/sync_history.entity';
 import { Status } from '../enums/asset.enum';
 
 export interface IAsset {
@@ -9,4 +10,10 @@ export interface IAsset {
   created_at: number;
   updated_at: number;
   location_id: number;
+}
+
+export interface IAssetResponse {
+  status: boolean;
+  message: string;
+  syncHistory: SyncHistory;
 }

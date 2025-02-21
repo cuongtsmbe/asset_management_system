@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Param, Query } from '@nestjs/common';
 import { AssetService } from '../services/asset.service';
 import { Asset } from '../../../database/entities/asset.entity';
+import { IAssetResponse } from 'src/shared/interfaces/asset.interface';
 
 @Controller('assets')
 export class AssetController {
@@ -17,7 +18,7 @@ export class AssetController {
   }
 
   @Post('sync')
-  async syncAssets() {
+  async syncAssets(): Promise<IAssetResponse> {
     return this.assetService.syncAssets();
   }
 
